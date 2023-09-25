@@ -1,0 +1,17 @@
+version: '3.2'
+
+services:
+  db:
+    image: postgres:15.2
+    container_name: nimble_devops_ic_web_db
+    environment:
+      - POSTGRES_DB=nimble_devops_ic_web_development
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:6.2.7
+    container_name: nimble_devops_ic_web_redis
+    ports:
+      - "6379:6379"
