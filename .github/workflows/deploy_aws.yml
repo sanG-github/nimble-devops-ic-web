@@ -17,30 +17,32 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Set current branch name to variable
-        run: echo "BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)" >> $GITHUB_ENV
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
 
-      - name: Set current env name based on current branch name
-        run: |
-          if [[ $BRANCH == 'main' ]]; then
-              echo "CURRENT_ENV=production" >> "$GITHUB_ENV"
-          else
-              echo "CURRENT_ENV=staging" >> "$GITHUB_ENV"
-          fi
+      - name: Set env BRANCH_TAG
+        uses: nimblehq/branch-tag-action@1
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
 
-      - name: Populate based on current end and shared between jobs variables
-        id: populate-outputs
+
+      # - name: Set ECS environment variables for production
+      #   if: env.BRANCH_TAG == 'latest'
+      #   run: |
+      #     echo "ECS_CLUSTER=ewa-payroll-web-prod-ecs-cluster" >> $GITHUB_ENV
+      #     echo "ECS_SERVICE=ewa-payroll-web-prod-ecs-service" >> $GITHUB_ENV
+      #     echo "ECS_TASK_DEFINITION=ewa-payroll-web-prod-service" >> $GITHUB_ENV
+      #     echo "CONTAINER_NAME=ewa-payroll-web-prod" >> $GITHUB_ENV
+
+      - name: Set ECS environment variables for staging
+        if: env.BRANCH_TAG != 'latest'
         run: |
           echo "ECS_CLUSTER=devops-ic-ecs-ecs-cluster" >> $GITHUB_ENV
           echo "ECS_SERVICE=devops-ic-ecs-ecs-service" >> $GITHUB_ENV
           echo "ECS_TASK_DEFINITION=devops-ic-ecs-service" >> $GITHUB_ENV
           echo "CONTAINER_NAME=devops-ic-ecs" >> $GITHUB_ENV
-
-      - name: Expose useful environment variables
-        uses: FranzDiebold/github-env-vars-action@v2.7.0
-
-      - name: Checkout
-        uses: actions/checkout@v3.3.0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
@@ -54,12 +56,16 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1.5.3
 
       - name: Build, tag, and push image to AWS ECR
+        id: build-image
         env:
-          SHARED_ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          DOCKER_REGISTRY_HOST: ${{ steps.login-ecr.outputs.registry }}
+          DOCKER_IMAGE: ${{ env.ECR_REPOSITORY }}
         run: |
-          ./bin/docker-prepare && docker build -t $SHARED_ECR_REGISTRY/$ECR_REPOSITORY:$CI_REF_NAME_SLUG-$CI_SHA_SHORT \
-          -t $SHARED_ECR_REGISTRY/$ECR_REPOSITORY:${{ env.CURRENT_ENV }} .
-          docker push -a $SHARED_ECR_REGISTRY/$ECR_REPOSITORY
+          bin/docker-prepare
+          docker-compose build
+          docker-compose push web
+          echo "image=${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE}:${BRANCH_TAG}" >> $GITHUB_OUTPUT
+
       - name: Download task definition
         run: |
           aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} \
@@ -71,7 +77,7 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.CI_REF_NAME_SLUG }}-${{ env.CI_SHA_SHORT }}
+          image: ${{ steps.build-image.outputs.image }}
 
       - name: Trigger ECS Deployment
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1.4.11
