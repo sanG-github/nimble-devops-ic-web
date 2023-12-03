@@ -12,7 +12,7 @@ gem 'sidekiq' # background processing for Ruby
 gem 'bootsnap', require: false # Reduces boot times through caching; required in config/boot.rb
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby] # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 # gem 'jbuilder' # Build JSON APIs with ease
-# gem 'redis' # Use Redis adapter to run Action Cable in production
+gem 'redis' # Use Redis adapter to run Action Cable in production
 # gem 'kredis' # Use Kredis to get higher-level data types in Redis
 # gem 'bcrypt' # Use Active Model has_secure_password
 
@@ -65,7 +65,7 @@ group :development, :test do
   gem 'rubocop-rails', require: false # A RuboCop extension focused on enforcing Rails best practices and coding conventions.
   gem 'rubocop-rspec', require: false # Code style checking for RSpec files
   gem 'rubocop-performance', require: false # An extension of RuboCop focused on code performance checks.
-  gem 'undercover' # Report missing test coverage in new changes
+  # gem 'undercover' # Report missing test coverage in new changes
   gem 'danger' # Automated code review.
   gem 'danger-eslint' # ESLint
   gem 'danger-stylelint' # Stylelint

@@ -1,5 +1,5 @@
 default: &default
-  DB_NAME: "nimble_devops_ic_web"
+  DB_NAME: "staging"
   DB_HOST: "localhost"
   DB_PORT: "5432"
   DB_USERNAME: "postgres"

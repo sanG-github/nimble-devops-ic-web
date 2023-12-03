@@ -1,20 +1,6 @@
 version: '3.2'
 
 services:
-  db:
-    image: postgres:15.2
-    container_name: nimble_devops_ic_web_db
-    environment:
-      - POSTGRES_DB=nimble_devops_ic_web_production
-    ports:
-      - "5432:5432"
-
-  redis:
-    image: redis:6.2.7
-    container_name: nimble_devops_ic_web_redis
-    ports:
-      - "6379:6379"
-
   web:
     build:
       context: .
@@ -32,15 +18,12 @@ services:
       - "${PORT}:${PORT}"
     stdin_open: true
     tty: true
-    depends_on:
-      - db
     volumes:
       - "ruby-bundle:/bundle"
     environment:
       - RACK_ENV=production
       - RAILS_ENV=production
       - NODE_ENV=production
-      - DATABASE_URL=postgres://postgres@db/nimble_devops_ic_web_production
       - ASSET_HOST
       - DEFAULT_HOST
       - MAILER_SENDER
