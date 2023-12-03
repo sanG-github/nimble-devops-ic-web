@@ -16,3 +16,8 @@
 
   <%= submit_tag 'Retrieve Cache' %>
 <% end %>
+
+<% if local_assigns[:cache_key] || local_assigns[:cache_value] %>
+  <h1>Cache key: <%= local_assigns[:cache_key] %></h1>
+  <h1>Cache value: <%= local_assigns[:cache_value] %></h1>
+<% end %>

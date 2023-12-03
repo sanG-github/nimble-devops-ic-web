@@ -8,6 +8,6 @@ class CachesController < ApplicationController
   end
 
   def retrieve_cache
-    render json: { value: Rails.cache.read(params[:key]) }
+    render :index, locals: { cache_key: params[:key], cache_value: Rails.cache.read(params[:key]) }
   end
 end
