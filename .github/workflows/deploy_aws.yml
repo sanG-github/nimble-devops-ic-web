@@ -39,10 +39,10 @@ jobs:
       - name: Set ECS environment variables for staging
         if: env.BRANCH_TAG != 'latest'
         run: |
-          echo "ECS_CLUSTER=devops-ic-ecs-ecs-cluster" >> $GITHUB_ENV
-          echo "ECS_SERVICE=devops-ic-ecs-ecs-service" >> $GITHUB_ENV
-          echo "ECS_TASK_DEFINITION=devops-ic-ecs-service" >> $GITHUB_ENV
-          echo "CONTAINER_NAME=devops-ic-ecs" >> $GITHUB_ENV
+          echo "ECS_CLUSTER=staging-devops-ic-ecs-ecs-cluster" >> $GITHUB_ENV
+          echo "ECS_SERVICE=staging-devops-ic-ecs-ecs-service" >> $GITHUB_ENV
+          echo "ECS_TASK_DEFINITION=staging-devops-ic-ecs-service" >> $GITHUB_ENV
+          echo "CONTAINER_NAME=staging-devops-ic-ecs" >> $GITHUB_ENV
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
