@@ -57,6 +57,7 @@ Rails.application.configure do
 
   # Use a different cache store in production.
   config.cache_store = :redis_cache_store, {
+    cache_servers: ["redis://master.staging-devops-ic-elasticache-rep-group.cphc6r.apse1.cache.amazonaws.com:6379/0", "redis://replica.staging-devops-ic-elasticache-rep-group.cphc6r.apse1.cache.amazonaws.com:6379/0"],
     url: ENV.fetch("REDIS_URL") { "redis://localhost:6379/1" },
     connect_timeout: 30,
     reconnect_attempts: 2,
