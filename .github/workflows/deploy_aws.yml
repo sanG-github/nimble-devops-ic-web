@@ -55,16 +55,16 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1.5.3
 
-      # - name: Build, tag, and push image to AWS ECR
-      #   id: build-image
-      #   env:
-      #     DOCKER_REGISTRY_HOST: ${{ steps.login-ecr.outputs.registry }}
-      #     DOCKER_IMAGE: ${{ env.ECR_REPOSITORY }}
-      #   run: |
-      #     bin/docker-prepare
-      #     docker-compose build
-      #     docker-compose push web
-      #     echo "image=${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE}:${BRANCH_TAG}" >> $GITHUB_OUTPUT
+      - name: Build, tag, and push image to AWS ECR
+        id: build-image
+        env:
+          DOCKER_REGISTRY_HOST: ${{ steps.login-ecr.outputs.registry }}
+          DOCKER_IMAGE: ${{ env.ECR_REPOSITORY }}
+        run: |
+          bin/docker-prepare
+          docker-compose build
+          docker-compose push web
+          echo "image=${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE}:${BRANCH_TAG}" >> $GITHUB_OUTPUT
 
       - name: Download task definition
         run: |
@@ -77,7 +77,7 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: 637423457378.dkr.ecr.ap-southeast-1.amazonaws.com/devops-ic-ecr:pull-3-merge
+          image: ${{ steps.build-image.outputs.image }}
 
       - name: Trigger ECS Deployment
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1.4.11
