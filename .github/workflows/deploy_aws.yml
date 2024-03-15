@@ -1,0 +1,89 @@
+name: Deploy to AWS
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+env:
+  ECR_REPOSITORY: devops-ic-ecr
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
+
+      - name: Set env BRANCH_TAG
+        uses: nimblehq/branch-tag-action@1
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
+
+
+      # - name: Set ECS environment variables for production
+      #   if: env.BRANCH_TAG == 'latest'
+      #   run: |
+      #     echo "ECS_CLUSTER=ewa-payroll-web-prod-ecs-cluster" >> $GITHUB_ENV
+      #     echo "ECS_SERVICE=ewa-payroll-web-prod-ecs-service" >> $GITHUB_ENV
+      #     echo "ECS_TASK_DEFINITION=ewa-payroll-web-prod-service" >> $GITHUB_ENV
+      #     echo "CONTAINER_NAME=ewa-payroll-web-prod" >> $GITHUB_ENV
+
+      - name: Set ECS environment variables for staging
+        if: env.BRANCH_TAG != 'latest'
+        run: |
+          echo "ECS_CLUSTER=staging-devops-ic-ecs-ecs-cluster" >> $GITHUB_ENV
+          echo "ECS_SERVICE=staging-devops-ic-ecs-ecs-service" >> $GITHUB_ENV
+          echo "ECS_TASK_DEFINITION=staging-devops-ic-ecs-service" >> $GITHUB_ENV
+          echo "CONTAINER_NAME=staging-devops-ic-ecs" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1.5.3
+
+      - name: Build, tag, and push image to AWS ECR
+        id: build-image
+        env:
+          DOCKER_REGISTRY_HOST: ${{ steps.login-ecr.outputs.registry }}
+          DOCKER_IMAGE: ${{ env.ECR_REPOSITORY }}
+        run: |
+          bin/docker-prepare
+          docker-compose build
+          docker-compose push web
+          echo "image=${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE}:${BRANCH_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+          --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the AWS ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1.1.3
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Trigger ECS Deployment
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1.4.11
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

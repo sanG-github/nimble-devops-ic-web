@@ -1,0 +1,23 @@
+<h1>REDIS_URL: <%= ENV["REDIS_URL"] %></h1>
+
+<%= form_tag(set_cache_path, method: :post) do %>
+  <%= label_tag :key, 'Cache Key' %>
+  <%= text_field_tag :key %>
+
+  <%= label_tag :value, 'Cache Value' %>
+  <%= text_field_tag :value %>
+
+  <%= submit_tag 'Set Cache' %>
+<% end %>
+
+<%= form_tag(retrieve_cache_path, method: :get) do %>
+  <%= label_tag :key, 'Cache Key' %>
+  <%= text_field_tag :key %>
+
+  <%= submit_tag 'Retrieve Cache' %>
+<% end %>
+
+<% if local_assigns[:cache_key] || local_assigns[:cache_value] %>
+  <h1>Cache key: <%= local_assigns[:cache_key] %></h1>
+  <h1>Cache value: <%= local_assigns[:cache_value] %></h1>
+<% end %>
